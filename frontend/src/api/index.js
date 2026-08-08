@@ -58,14 +58,15 @@ export const api = {
     }
 
     // Fallback Mock Authentication
-    // Accept admin/adminpassword123, doctor/doctorpassword123, receptionist/receppassword123
     const mockUsers = {
+      famina: { id: 1, username: "famina", role: "admin", first_name: "Femina", last_name: "Admin" },
       admin: { id: 1, username: "admin", role: "admin", first_name: "Femina", last_name: "Admin" },
       doctor: { id: 2, username: "doctor", role: "doctor", first_name: "Dr. Anjali", last_name: "Deshmukh" },
       receptionist: { id: 3, username: "receptionist", role: "receptionist", first_name: "Kiran", last_name: "Joshi" }
     };
 
     const credentials = {
+      famina: "famina9656",
       admin: "adminpassword123",
       doctor: "doctorpassword123",
       receptionist: "receppassword123"

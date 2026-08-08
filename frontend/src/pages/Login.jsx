@@ -99,8 +99,8 @@ export default function Login({ onLogin }) {
           <div className="flex gap-1.5 items-start">
             <Info className="h-4 w-4 text-rose-gold flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-semibold text-teal-accent">Quick Demo Credentials:</p>
-              <p>• <strong>Admin:</strong> admin / adminpassword123</p>
+              <p className="font-semibold text-teal-accent">Login Credentials:</p>
+              <p>• <strong>Main Admin:</strong> famina / famina9656</p>
               <p>• <strong>Doctor:</strong> doctor / doctorpassword123</p>
               <p>• <strong>Receptionist:</strong> receptionist / receppassword123</p>
             </div>

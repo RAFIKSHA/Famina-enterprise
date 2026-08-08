@@ -27,6 +27,17 @@ class Command(BaseCommand):
         # 1. Create Staff Users
         # ----------------------------------------------------
         self.stdout.write('Creating staff users...')
+        famina_user = User.objects.create_user(
+            username='famina',
+            email='famina@feminaclinic.com',
+            password='famina9656',
+            role='admin',
+            first_name='Femina',
+            last_name='Admin',
+            is_staff=True,
+            is_superuser=True
+        )
+
         admin_user = User.objects.create_user(
             username='admin',
             email='admin@feminaclinic.com',
