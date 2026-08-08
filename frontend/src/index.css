@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-heading: 'Poppins', sans-serif;
+  
+  /* Color Palette matching clinic-meets-spa design */
+  --color-cream-bg: #FAF9F6;
+  --color-cream-card: #FFFFFF;
+  --color-cream-dark: #F3ECE0;
+  
+  --color-rose-gold: #C5A08A;
+  --color-rose-gold-light: #DFCDBC;
+  --color-rose-gold-dark: #AC866F;
+  
+  --color-teal-accent: #134e4a;
+  --color-teal-light: #2dd4bf;
+  --color-teal-dark: #115e59;
+  
+  --color-charcoal: #2D2D2D;
+  --color-charcoal-light: #666666;
+}
+
+body {
+  background-color: var(--color-cream-bg);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-rose-gold-light);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-rose-gold);
+}
+
+/* Checkbox animations */
+input[type="checkbox"] {
+  accent-color: var(--color-teal-accent);
+}
+
+/* Print styles for elegant invoices and record sheets */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
