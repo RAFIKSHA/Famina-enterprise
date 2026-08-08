@@ -39,9 +39,34 @@ export default function MasterDashboard({ currentRole }) {
 
   const COLORS = ["#134e4a", "#C5A08A", "#6366f1", "#a855f7", "#ec4899", "#0ea5e9"];
 
-  // Mock Export function
+  // Real CSV Export function
   const handleExport = (type) => {
-    alert(`Success: Downloaded Femina ${type} report (${startDate} to ${endDate}) as Excel/CSV format.`);
+    if (!data) return;
+    let csvContent = "data:text/csv;charset=utf-8,";
+    if (type === "Revenue") {
+      csvContent += "Category/Department,Amount (INR)\n";
+      data.revenue.dept_revenue.forEach(d => {
+        csvContent += `"${d.name}",${d.value}\n`;
+      });
+      csvContent += `\nPayment Method,Amount (INR)\n`;
+      data.revenue.payment_mode_split.forEach(p => {
+        csvContent += `"${p.name}",${p.value}\n`;
+      });
+      csvContent += `\nTotal Revenue,${data.revenue.total_revenue}\n`;
+      csvContent += `Total Outstanding Dues,${data.revenue.total_outstanding_dues}\n`;
+    } else {
+      csvContent += "Metric,Value\n";
+      csvContent += `Total Patients,${data.patients.total_patients}\n`;
+      csvContent += `New Patients This Month,${data.patients.new_patients_this_month}\n`;
+      csvContent += `Unfinished Packages,${data.patients.sessions_remaining}\n`;
+    }
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Femina_${type}_Report_${startDate}_to_${endDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (loading) {
