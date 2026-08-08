@@ -16,7 +16,10 @@ const BASE_URL = getBaseUrl();
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("femina_token");
-  return token ? { "Authorization": `Bearer ${token}` } : {};
+  if (!token || token === "mock-jwt-token" || token.length < 20) {
+    return {};
+  }
+  return { "Authorization": `Bearer ${token}` };
 };
 
 export const checkBackendStatus = async () => {
