@@ -1,13 +1,15 @@
 // Unified Django REST API Client connected directly to Supabase Backend
 
 const getBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace(/\/$/, "");
+  let envUrl = (import.meta.env.VITE_API_URL || "").trim();
+  // If envUrl is the wrong old typo 'femina-backend' or empty, use the real backend
+  if (!envUrl || envUrl.includes("femina-backend.onrender.com")) {
+    if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      return "https://famina-enterprise.onrender.com";
+    }
+    return "http://127.0.0.1:8000";
   }
-  if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-    return "https://famina-enterprise.onrender.com";
-  }
-  return "http://127.0.0.1:8000";
+  return envUrl.replace(/\/$/, "");
 };
 
 const BASE_URL = getBaseUrl();
