@@ -10,8 +10,14 @@ let backendOnline = false;
 // Helper to check backend status
 export const checkBackendStatus = async () => {
   try {
-    const res = await fetch(`${BASE_URL}/api/patients/`, { method: "HEAD" });
-    backendOnline = res.ok || res.status === 401 || res.status === 403;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`${BASE_URL}/api/health/`, {
+      method: "GET",
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    backendOnline = res.ok;
   } catch (err) {
     backendOnline = false;
   }
