@@ -14,11 +14,18 @@ export default function Layout({ children, currentRole, onChangeRole, globalSear
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
+    checkBackendStatus().then(status => {
+      if (mounted) setIsBackendOnline(status);
+    });
     const timer = setInterval(async () => {
       const status = await checkBackendStatus();
-      setIsBackendOnline(status);
+      if (mounted) setIsBackendOnline(status);
     }, 10000);
-    return () => clearInterval(timer);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
   }, []);
 
   const menuItems = [

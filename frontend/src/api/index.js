@@ -47,7 +47,8 @@ export const api = {
 
   // Authentication
   login: async (username, password) => {
-    // If backend is online, attempt API login
+    // Check backend status before login attempt
+    await checkBackendStatus();
     if (backendOnline) {
       try {
         const res = await fetch(`${BASE_URL}/api/auth/token/`, {
@@ -60,7 +61,7 @@ export const api = {
           localStorage.setItem("femina_token", data.access);
           // Fetch user details to get role
           const profileRes = await fetch(`${BASE_URL}/api/auth/profile/`, {
-            headers: getAuthHeaders()
+            headers: { "Authorization": `Bearer ${data.access}` }
           });
           if (profileRes.ok) {
             const profile = await profileRes.json();
