@@ -1,6 +1,4 @@
-// Unified API Client with Automatic Django Backend/Offline LocalStorage Fallback
-
-import { mockDbOps, initMockDb } from "../utils/mockDb";
+// Unified Django REST API Client connected directly to Supabase Backend
 
 const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
@@ -14,89 +12,62 @@ const getBaseUrl = () => {
 
 const BASE_URL = getBaseUrl();
 
-// State to track if backend is online
-let backendOnline = false;
-
-// Helper to check backend status with cold-start allowance
-export const checkBackendStatus = async () => {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000);
-    const res = await fetch(`${BASE_URL}/api/health/`, {
-      method: "GET",
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    backendOnline = res.ok;
-  } catch (err) {
-    backendOnline = false;
-  }
-  return backendOnline;
-};
-
-// Check initially
-checkBackendStatus();
-
 const getAuthHeaders = () => {
   const token = localStorage.getItem("femina_token");
   return token ? { "Authorization": `Bearer ${token}` } : {};
 };
 
+export const checkBackendStatus = async () => {
+  try {
+    const res = await fetch(`${BASE_URL}/api/health/`);
+    return res.ok;
+  } catch (err) {
+    return false;
+  }
+};
+
 export const api = {
-  isBackendOnline: () => backendOnline,
+  isBackendOnline: () => true,
 
   // Authentication
   login: async (username, password) => {
-    // Check backend status before login attempt
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/auth/token/`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/token/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("femina_token", data.access);
+        
+        // Fetch user profile details
+        const profileRes = await fetch(`${BASE_URL}/api/auth/profile/`, {
+          headers: { "Authorization": `Bearer ${data.access}` }
         });
-        if (res.ok) {
-          const data = await res.json();
-          localStorage.setItem("femina_token", data.access);
-          // Fetch user details to get role
-          const profileRes = await fetch(`${BASE_URL}/api/auth/profile/`, {
-            headers: { "Authorization": `Bearer ${data.access}` }
-          });
-          if (profileRes.ok) {
-            const profile = await profileRes.json();
-            localStorage.setItem("femina_user", JSON.stringify(profile));
-            return { success: true, user: profile };
-          }
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          localStorage.setItem("femina_user", JSON.stringify(profile));
+          return { success: true, user: profile };
         }
-      } catch (err) {
-        console.error("Backend login failed, attempting fallback...", err);
+        
+        const basicUser = { username, role: "admin" };
+        localStorage.setItem("femina_user", JSON.stringify(basicUser));
+        return { success: true, user: basicUser };
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        return { 
+          success: false, 
+          message: errData.detail || "Invalid username or password." 
+        };
       }
+    } catch (err) {
+      console.error("Login network error:", err);
+      return { 
+        success: false, 
+        message: "Unable to connect to server. Please check your connection and try again." 
+      };
     }
-
-    // Fallback Mock Authentication
-    const mockUsers = {
-      famina: { id: 1, username: "famina", role: "admin", first_name: "Femina", last_name: "Admin" },
-      admin: { id: 1, username: "admin", role: "admin", first_name: "Femina", last_name: "Admin" },
-      doctor: { id: 2, username: "doctor", role: "doctor", first_name: "Dr. Anjali", last_name: "Deshmukh" },
-      receptionist: { id: 3, username: "receptionist", role: "receptionist", first_name: "Kiran", last_name: "Joshi" }
-    };
-
-    const credentials = {
-      famina: "famina9656",
-      admin: "adminpassword123",
-      doctor: "doctorpassword123",
-      receptionist: "receppassword123"
-    };
-
-    if (mockUsers[username] && credentials[username] === password) {
-      const user = mockUsers[username];
-      localStorage.setItem("femina_token", "mock-jwt-token");
-      localStorage.setItem("femina_user", JSON.stringify(user));
-      return { success: true, user };
-    }
-
-    return { success: false, message: "Invalid username or password" };
   },
 
   logout: () => {
@@ -111,89 +82,79 @@ export const api = {
 
   // Patients
   getPatients: async (search = "", category = "", subcategory = "") => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        let url = `${BASE_URL}/api/patients/?search=${encodeURIComponent(search)}`;
-        if (category) url += `&category=${encodeURIComponent(category)}`;
-        if (subcategory) url += `&subcategory=${encodeURIComponent(subcategory)}`;
-        
-        const res = await fetch(url, { headers: getAuthHeaders() });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend fetch failed, falling back to LocalStorage...", err);
-      }
+    try {
+      let url = `${BASE_URL}/api/patients/?search=${encodeURIComponent(search)}`;
+      if (category) url += `&category=${encodeURIComponent(category)}`;
+      if (subcategory) url += `&subcategory=${encodeURIComponent(subcategory)}`;
+      
+      const res = await fetch(url, { headers: getAuthHeaders() });
+      if (res.ok) return await res.json();
+      return [];
+    } catch (err) {
+      console.error("Fetch patients failed:", err);
+      return [];
     }
-    return mockDbOps.getPatients(search, category, subcategory);
   },
 
   getPatient: async (id) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/patients/${id}/`, { headers: getAuthHeaders() });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend fetch failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/patients/${id}/`, { headers: getAuthHeaders() });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Fetch patient failed:", err);
+      return null;
     }
-    return mockDbOps.getPatient(id);
   },
 
   createPatient: async (patientData) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/patients/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(patientData)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend create failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/patients/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(patientData)
+      });
+      if (res.ok) return await res.json();
+      const err = await res.json();
+      throw new Error(JSON.stringify(err));
+    } catch (err) {
+      console.error("Create patient failed:", err);
+      throw err;
     }
-    return mockDbOps.createPatient(patientData);
   },
 
   updatePatient: async (id, patientData) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/patients/${id}/`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(patientData)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend update failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/patients/${id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(patientData)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Update patient failed:", err);
+      return null;
     }
-    return mockDbOps.updatePatient(id, patientData);
   },
 
   deletePatient: async (id) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/patients/${id}/`, {
-          method: "DELETE",
-          headers: getAuthHeaders()
-        });
-        if (res.ok) return true;
-      } catch (err) {
-        console.error("Backend delete failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/patients/${id}/`, {
+        method: "DELETE",
+        headers: getAuthHeaders()
+      });
+      return res.ok;
+    } catch (err) {
+      console.error("Delete patient failed:", err);
+      return false;
     }
-    return mockDbOps.deletePatient(id);
   },
 
   // Sessions / Visits
@@ -206,23 +167,21 @@ export const api = {
       delete sanitized.visit_date;
     }
 
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/visits/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(sanitized)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend create visit failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/visits/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(sanitized)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Create visit failed:", err);
+      return null;
     }
-    return mockDbOps.createVisit(sanitized);
   },
 
   updateVisit: async (id, visitData) => {
@@ -232,206 +191,185 @@ export const api = {
     }
     delete sanitized.id;
 
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/visits/${id}/`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(sanitized)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend update visit failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/visits/${id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(sanitized)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Update visit failed:", err);
+      return null;
     }
-    return mockDbOps.updateVisit(id, sanitized);
   },
 
   // Direct Billing / Payments
   createPayment: async (paymentData) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/payments/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(paymentData)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend create payment failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/payments/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(paymentData)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Create payment failed:", err);
+      return null;
     }
-    return mockDbOps.createPayment(paymentData);
   },
 
   // Appointments
   getAppointments: async () => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/appointments/`, { headers: getAuthHeaders() });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend fetch appointments failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/appointments/`, { headers: getAuthHeaders() });
+      if (res.ok) return await res.json();
+      return [];
+    } catch (err) {
+      console.error("Fetch appointments failed:", err);
+      return [];
     }
-    return mockDbOps.getAppointments();
   },
 
   createAppointment: async (apptData) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/appointments/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(apptData)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend create appointment failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/appointments/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(apptData)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Create appointment failed:", err);
+      return null;
     }
-    return mockDbOps.createAppointment(apptData);
   },
 
   updateAppointment: async (id, apptData) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/appointments/${id}/`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(apptData)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend update appointment failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/appointments/${id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(apptData)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Update appointment failed:", err);
+      return null;
     }
-    return mockDbOps.updateAppointment(id, apptData);
   },
 
   // Academy Admissions
   getAdmissions: async (search = "") => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/academy/?search=${encodeURIComponent(search)}`, { headers: getAuthHeaders() });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend fetch academy admissions failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/academy/?search=${encodeURIComponent(search)}`, { headers: getAuthHeaders() });
+      if (res.ok) return await res.json();
+      return [];
+    } catch (err) {
+      console.error("Fetch academy admissions failed:", err);
+      return [];
     }
-    return mockDbOps.getAdmissions(search);
   },
 
   createAdmission: async (admissionData) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/academy/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(admissionData)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend create admission failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/academy/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(admissionData)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Create admission failed:", err);
+      return null;
     }
-    return mockDbOps.createAdmission(admissionData);
   },
 
   updateAdmission: async (id, admissionData) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/academy/${id}/`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(admissionData)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend update admission failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/academy/${id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(admissionData)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Update admission failed:", err);
+      return null;
     }
-    return mockDbOps.updateAdmission(id, admissionData);
   },
 
   // Salon Bookings
   getSalonBookings: async (service_type = "", search = "") => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        let url = `${BASE_URL}/api/salon/?search=${encodeURIComponent(search)}`;
-        if (service_type) url += `&service_type=${encodeURIComponent(service_type)}`;
-        const res = await fetch(url, { headers: getAuthHeaders() });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend fetch salon bookings failed, falling back to LocalStorage...", err);
-      }
+    try {
+      let url = `${BASE_URL}/api/salon/?search=${encodeURIComponent(search)}`;
+      if (service_type) url += `&service_type=${encodeURIComponent(service_type)}`;
+      const res = await fetch(url, { headers: getAuthHeaders() });
+      if (res.ok) return await res.json();
+      return [];
+    } catch (err) {
+      console.error("Fetch salon bookings failed:", err);
+      return [];
     }
-    return mockDbOps.getSalonBookings(service_type, search);
   },
 
   createSalonBooking: async (bookingData) => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        const res = await fetch(`${BASE_URL}/api/salon/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(bookingData)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend create salon booking failed, falling back to LocalStorage...", err);
-      }
+    try {
+      const res = await fetch(`${BASE_URL}/api/salon/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(bookingData)
+      });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Create salon booking failed:", err);
+      return null;
     }
-    return mockDbOps.createSalonBooking(bookingData);
   },
 
   // Master Dashboard Analytics
   getAnalytics: async (startDate = "", endDate = "") => {
-    await checkBackendStatus();
-    if (backendOnline) {
-      try {
-        let url = `${BASE_URL}/api/dashboard/analytics/`;
-        if (startDate || endDate) {
-          url += `?start_date=${startDate}&end_date=${endDate}`;
-        }
-        const res = await fetch(url, { headers: getAuthHeaders() });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Backend fetch analytics failed, falling back to LocalStorage...", err);
+    try {
+      let url = `${BASE_URL}/api/dashboard/analytics/`;
+      if (startDate || endDate) {
+        url += `?start_date=${startDate}&end_date=${endDate}`;
       }
+      const res = await fetch(url, { headers: getAuthHeaders() });
+      if (res.ok) return await res.json();
+      return null;
+    } catch (err) {
+      console.error("Fetch analytics failed:", err);
+      return null;
     }
-    return mockDbOps.getAnalytics(startDate, endDate);
   }
 };
+
 export default api;

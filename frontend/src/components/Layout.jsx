@@ -9,24 +9,8 @@ import api, { checkBackendStatus } from "../api";
 
 export default function Layout({ children, currentRole, onChangeRole, globalSearch, setGlobalSearch, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isBackendOnline, setIsBackendOnline] = useState(api.isBackendOnline());
   const location = useLocation();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    let mounted = true;
-    checkBackendStatus().then(status => {
-      if (mounted) setIsBackendOnline(status);
-    });
-    const timer = setInterval(async () => {
-      const status = await checkBackendStatus();
-      if (mounted) setIsBackendOnline(status);
-    }, 10000);
-    return () => {
-      mounted = false;
-      clearInterval(timer);
-    };
-  }, []);
 
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: Sparkles, roles: ["admin", "doctor", "receptionist"] },
@@ -46,40 +30,8 @@ export default function Layout({ children, currentRole, onChangeRole, globalSear
     }
   };
 
-  const [reconnecting, setReconnecting] = useState(false);
-
-  const handleReconnect = async () => {
-    setReconnecting(true);
-    const status = await checkBackendStatus();
-    setIsBackendOnline(status);
-    setReconnecting(false);
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-cream-bg text-charcoal">
-      {/* Offline Alert Banner */}
-      {!isBackendOnline && (
-        <div className="bg-amber-100 border-b border-amber-200 text-amber-800 text-xs px-4 py-2 flex items-center justify-between no-print">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${reconnecting ? 'bg-blue-500 animate-ping' : 'bg-amber-500'}`}></span>
-            <span>
-              <strong>{reconnecting ? 'Connecting...' : 'Cloud Server Sleeping:'}</strong>{' '}
-              {reconnecting
-                ? 'Waking up Render backend and syncing with Supabase (takes ~15-20s)...'
-                : 'Server is in eco sleep mode. Click Reconnect to wake it up or continue in offline mode.'}
-            </span>
-          </div>
-          <button 
-            onClick={handleReconnect}
-            disabled={reconnecting}
-            className="flex items-center gap-1.5 bg-amber-200/80 hover:bg-amber-300 px-2.5 py-1 rounded-lg text-amber-900 font-semibold cursor-pointer transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`h-3 w-3 ${reconnecting ? 'animate-spin' : ''}`} />
-            {reconnecting ? 'Waking Server...' : 'Wake & Reconnect'}
-          </button>
-        </div>
-      )}
-
       {/* Main Premium Clinic Header */}
       <header className="bg-cream-card border-b border-rose-gold-light/20 px-4 py-3 md:px-6 shadow-sm no-print">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
