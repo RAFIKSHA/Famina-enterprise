@@ -6,6 +6,11 @@ class SalonBookingSerializer(serializers.ModelSerializer):
         model = SalonBooking
         fields = '__all__'
 
+    def to_representation(self, instance):
+        if hasattr(instance, 'booking_date') and hasattr(instance.booking_date, 'date'):
+            instance.booking_date = instance.booking_date.date()
+        return super().to_representation(instance)
+
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, 'copy') else dict(data)
         if data.get('amount_charged') == '' or data.get('amount_charged') is None:

@@ -11,6 +11,11 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = '__all__'
 
+    def to_representation(self, instance):
+        if hasattr(instance, 'payment_date') and hasattr(instance.payment_date, 'date'):
+            instance.payment_date = instance.payment_date.date()
+        return super().to_representation(instance)
+
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, 'copy') else dict(data)
         if data.get('total_package_amount') == '' or data.get('total_package_amount') is None:

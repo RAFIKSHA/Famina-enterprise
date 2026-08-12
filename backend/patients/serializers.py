@@ -23,6 +23,13 @@ class VisitSerializer(serializers.ModelSerializer):
             data['treatment_given'] = 'General Treatment Session'
         return super().to_internal_value(data)
 
+    def to_representation(self, instance):
+        if hasattr(instance, 'visit_date') and hasattr(instance.visit_date, 'date'):
+            instance.visit_date = instance.visit_date.date()
+        if hasattr(instance, 'next_appointment_date') and hasattr(instance.next_appointment_date, 'date'):
+            instance.next_appointment_date = instance.next_appointment_date.date()
+        return super().to_representation(instance)
+
     def validate(self, data):
         patient = data.get('patient')
         session_no = data.get('session_no')
@@ -49,6 +56,11 @@ class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = '__all__'
+
+    def to_representation(self, instance):
+        if hasattr(instance, 'registration_date') and hasattr(instance.registration_date, 'date'):
+            instance.registration_date = instance.registration_date.date()
+        return super().to_representation(instance)
 
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, 'copy') else dict(data)

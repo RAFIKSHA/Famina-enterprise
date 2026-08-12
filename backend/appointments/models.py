@@ -11,7 +11,7 @@ class Appointment(models.Model):
     )
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
-    appointment_date = models.DateField(default=timezone.now)
+    appointment_date = models.DateField(default=timezone.localdate)
     appointment_time = models.TimeField(default="10:00")
     
     department = models.CharField(max_length=100, blank=True, default='Skin & Laser') # Skin & Laser, Hair Treatment, etc.

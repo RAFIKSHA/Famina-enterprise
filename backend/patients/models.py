@@ -16,7 +16,7 @@ class Patient(models.Model):
 
     # Patient Information
     patient_id = models.CharField(max_length=50, unique=True, blank=True)
-    registration_date = models.DateField(default=timezone.now)
+    registration_date = models.DateField(default=timezone.localdate)
     name = models.CharField(max_length=255, blank=True, default='')
     age = models.IntegerField(null=True, blank=True, default=0)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, default='Female')
@@ -92,7 +92,7 @@ class Visit(models.Model):
     )
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='visits')
-    visit_date = models.DateField(default=timezone.now)
+    visit_date = models.DateField(default=timezone.localdate)
     session_no = models.IntegerField(default=1, blank=True)
     total_sessions_in_package = models.IntegerField(default=1)
     

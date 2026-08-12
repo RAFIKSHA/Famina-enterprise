@@ -4,7 +4,7 @@ from django.utils import timezone
 class Admission(models.Model):
     student_name = models.CharField(max_length=255, blank=True, default='')
     course = models.CharField(max_length=255, blank=True, default='Professional Makeup & Hairstyling Diploma')
-    admission_date = models.DateField(default=timezone.now)
+    admission_date = models.DateField(default=timezone.localdate)
     
     total_fees = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

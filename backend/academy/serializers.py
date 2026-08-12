@@ -8,6 +8,11 @@ class AdmissionSerializer(serializers.ModelSerializer):
         model = Admission
         fields = '__all__'
 
+    def to_representation(self, instance):
+        if hasattr(instance, 'admission_date') and hasattr(instance.admission_date, 'date'):
+            instance.admission_date = instance.admission_date.date()
+        return super().to_representation(instance)
+
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, 'copy') else dict(data)
         if data.get('total_fees') == '' or data.get('total_fees') is None:

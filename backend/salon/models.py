@@ -16,7 +16,7 @@ class SalonBooking(models.Model):
     customer_name = models.CharField(max_length=255, blank=True, default='')
     service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='Salon', blank=True)
     service_name = models.CharField(max_length=255, blank=True, default='')
-    booking_date = models.DateField(default=timezone.now)
+    booking_date = models.DateField(default=timezone.localdate)
     
     amount_charged = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

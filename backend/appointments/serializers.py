@@ -10,6 +10,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = '__all__'
 
+    def to_representation(self, instance):
+        if hasattr(instance, 'appointment_date') and hasattr(instance.appointment_date, 'date'):
+            instance.appointment_date = instance.appointment_date.date()
+        return super().to_representation(instance)
+
     def to_internal_value(self, data):
         data = data.copy() if hasattr(data, 'copy') else dict(data)
         if not data.get('department'):

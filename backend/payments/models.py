@@ -13,7 +13,7 @@ class Payment(models.Model):
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='payments')
     visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
-    payment_date = models.DateField(default=timezone.now)
+    payment_date = models.DateField(default=timezone.localdate)
     receipt_no = models.CharField(max_length=50, unique=True, blank=True)
 
     total_package_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
