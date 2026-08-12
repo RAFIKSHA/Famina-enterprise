@@ -17,15 +17,15 @@ class Patient(models.Model):
     # Patient Information
     patient_id = models.CharField(max_length=50, unique=True, blank=True)
     registration_date = models.DateField(default=timezone.now)
-    name = models.CharField(max_length=255)
-    age = models.IntegerField()
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
-    mobile_no = models.CharField(max_length=15)
+    name = models.CharField(max_length=255, blank=True, default='')
+    age = models.IntegerField(null=True, blank=True, default=0)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, default='Female')
+    mobile_no = models.CharField(max_length=15, blank=True, default='')
     address = models.TextField(blank=True, null=True)
     occupation = models.CharField(max_length=100, blank=True, null=True)
 
     # Department structure placement
-    category = models.CharField(max_length=100) # e.g. Skin & Laser, Hair Treatment, Gents
+    category = models.CharField(max_length=100, blank=True, default='Skin & Laser') # e.g. Skin & Laser, Hair Treatment, Gents
     subcategory = models.CharField(max_length=100, blank=True, null=True) # e.g. Laser Hair Reduction
 
     # Medical History (Checkboxes)
@@ -65,7 +65,7 @@ class Patient(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} ({self.patient_id})"
+        return f"{self.name or 'Patient'} ({self.patient_id})"
 
 
 class Visit(models.Model):
@@ -78,10 +78,10 @@ class Visit(models.Model):
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='visits')
     visit_date = models.DateField(default=timezone.now)
-    session_no = models.IntegerField()
+    session_no = models.IntegerField(default=1, blank=True)
     total_sessions_in_package = models.IntegerField(default=1)
     
-    treatment_given = models.TextField()
+    treatment_given = models.TextField(blank=True, default='')
     notes = models.TextField(blank=True, null=True)
     
     # Store images as Base64 text or URL path for flexibility

@@ -13,9 +13,9 @@ class SalonBooking(models.Model):
         ('Cancelled', 'Cancelled'),
     )
 
-    customer_name = models.CharField(max_length=255)
-    service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES)
-    service_name = models.CharField(max_length=255)
+    customer_name = models.CharField(max_length=255, blank=True, default='')
+    service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='Salon', blank=True)
+    service_name = models.CharField(max_length=255, blank=True, default='')
     booking_date = models.DateField(default=timezone.now)
     
     amount_charged = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

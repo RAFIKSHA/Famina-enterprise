@@ -38,15 +38,16 @@ export default function Academy() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.student_name || !form.contact) {
-      alert("Student name and contact are required.");
-      return;
-    }
     try {
+      const payload = {
+        ...form,
+        student_name: form.student_name || "Student Record",
+        contact: form.contact || "N/A"
+      };
       if (editId) {
-        await api.updateAdmission(editId, form);
+        await api.updateAdmission(editId, payload);
       } else {
-        await api.createAdmission(form);
+        await api.createAdmission(payload);
       }
       handleClose();
       loadAdmissions();
@@ -116,10 +117,9 @@ export default function Academy() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block mb-1 font-semibold text-charcoal-light">Student Full Name *</label>
+                <label className="block mb-1 font-semibold text-charcoal-light">Student Full Name</label>
                 <input
                   type="text"
-                  required
                   placeholder="e.g. Priyanka Patil"
                   value={form.student_name}
                   onChange={(e) => setForm({ ...form, student_name: e.target.value })}
@@ -127,10 +127,9 @@ export default function Academy() {
                 />
               </div>
               <div>
-                <label className="block mb-1 font-semibold text-charcoal-light">Contact Number *</label>
+                <label className="block mb-1 font-semibold text-charcoal-light">Contact Number</label>
                 <input
                   type="text"
-                  required
                   placeholder="e.g. 9822334455"
                   value={form.contact}
                   onChange={(e) => setForm({ ...form, contact: e.target.value })}

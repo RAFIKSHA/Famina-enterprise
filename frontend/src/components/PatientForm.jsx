@@ -122,10 +122,6 @@ export default function PatientForm({ currentRole }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.mobile_no || !formData.age) {
-      alert("Name, Age, and Mobile number are required.");
-      return;
-    }
 
     try {
       if (id) {
@@ -134,7 +130,11 @@ export default function PatientForm({ currentRole }) {
         navigate(`/patient/${id}`);
       } else {
         // Create patient
-        const patient = await api.createPatient(formData);
+        const payload = {
+          ...formData,
+          name: formData.name || "Patient Record"
+        };
+        const patient = await api.createPatient(payload);
         
         // If fee is charged or paid, log the first visit session
         if (formData.amount_charged > 0 || formData.amount_paid > 0) {
@@ -193,10 +193,9 @@ export default function PatientForm({ currentRole }) {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div className="sm:col-span-2">
-                <label className="block mb-1 font-semibold text-charcoal-light">Patient Full Name *</label>
+                <label className="block mb-1 font-semibold text-charcoal-light">Patient Full Name</label>
                 <input
                   type="text"
-                  required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. Pooja Sharma"
@@ -205,10 +204,9 @@ export default function PatientForm({ currentRole }) {
               </div>
 
               <div>
-                <label className="block mb-1 font-semibold text-charcoal-light">Age (Years) *</label>
+                <label className="block mb-1 font-semibold text-charcoal-light">Age (Years)</label>
                 <input
                   type="number"
-                  required
                   value={formData.age}
                   onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                   placeholder="e.g. 28"
@@ -217,7 +215,7 @@ export default function PatientForm({ currentRole }) {
               </div>
 
               <div>
-                <label className="block mb-1 font-semibold text-charcoal-light">Gender *</label>
+                <label className="block mb-1 font-semibold text-charcoal-light">Gender</label>
                 <select
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
@@ -230,10 +228,9 @@ export default function PatientForm({ currentRole }) {
               </div>
 
               <div>
-                <label className="block mb-1 font-semibold text-charcoal-light">Mobile Number *</label>
+                <label className="block mb-1 font-semibold text-charcoal-light">Mobile Number</label>
                 <input
                   type="text"
-                  required
                   value={formData.mobile_no}
                   onChange={(e) => setFormData({ ...formData, mobile_no: e.target.value })}
                   placeholder="e.g. 9876543210"
@@ -514,7 +511,7 @@ export default function PatientForm({ currentRole }) {
                   <label className="block mb-1 font-semibold text-charcoal-light">Payment Mode</label>
                   <select
                     value={formData.payment_mode}
-                    onChange={(e) => setForm({ ...form, payment_mode: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, payment_mode: e.target.value })}
                     className="w-full bg-white border border-rose-gold-light/20 focus:border-rose-gold p-3 rounded-xl focus:outline-none font-medium"
                   >
                     <option value="Cash">Cash</option>

@@ -124,7 +124,7 @@ export default function Appointments() {
 
           <form onSubmit={handleCreate} className="space-y-4 text-xs">
             <div>
-              <label className="block mb-1 font-semibold text-charcoal-light">Select Patient *</label>
+              <label className="block mb-1 font-semibold text-charcoal-light">Select Patient</label>
               <select
                 value={form.patient}
                 onChange={(e) => setForm({ ...form, patient: e.target.value })}

@@ -39,12 +39,13 @@ export default function Salon({ serviceType }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.customer_name || !form.service_name) {
-      alert("Customer name and service name are required.");
-      return;
-    }
     try {
-      await api.createSalonBooking(form);
+      const payload = {
+        ...form,
+        customer_name: form.customer_name || "Walk-in Customer",
+        service_name: form.service_name || (serviceType === "Makeup" ? "Makeup Service" : "Salon Service")
+      };
+      await api.createSalonBooking(payload);
       setShowAddForm(false);
       setForm({
         customer_name: "",
@@ -102,10 +103,9 @@ export default function Salon({ serviceType }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block mb-1 font-semibold text-charcoal-light">Customer Name *</label>
+                <label className="block mb-1 font-semibold text-charcoal-light">Customer Name</label>
                 <input
                   type="text"
-                  required
                   placeholder="e.g. Snehal Gade"
                   value={form.customer_name}
                   onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
@@ -126,10 +126,9 @@ export default function Salon({ serviceType }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block mb-1 font-semibold text-charcoal-light">Service Done *</label>
+                <label className="block mb-1 font-semibold text-charcoal-light">Service Done</label>
                 <input
                   type="text"
-                  required
                   placeholder={isMakeup ? "e.g. Bridal HD Makeup Package" : "e.g. Keratin Hair Smoothening"}
                   value={form.service_name}
                   onChange={(e) => setForm({ ...form, service_name: e.target.value })}

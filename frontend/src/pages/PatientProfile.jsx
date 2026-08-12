@@ -63,10 +63,6 @@ export default function PatientProfile({ currentRole }) {
 
   const handleVisitSubmit = async (e) => {
     e.preventDefault();
-    if (!visitForm.treatment_given) {
-      alert("Please enter the treatment given.");
-      return;
-    }
 
     // Prevent duplicate session logging
     const sessionExists = patient.visits && patient.visits.some(v => Number(v.session_no) === Number(visitForm.session_no));
@@ -77,11 +73,13 @@ export default function PatientProfile({ currentRole }) {
 
     try {
       const user = api.getCurrentUser();
-      await api.createVisit({
+      const payload = {
         patient: patient.id,
         ...visitForm,
+        treatment_given: visitForm.treatment_given || "General Treatment Session",
         staff_attended: user ? user.username : "doctor"
-      });
+      };
+      await api.createVisit(payload);
       setShowLogVisit(false);
       setVisitForm({
         session_no: visitForm.session_no + 1,
@@ -120,10 +118,6 @@ export default function PatientProfile({ currentRole }) {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    if (!visitForm.treatment_given) {
-      alert("Please enter the treatment given.");
-      return;
-    }
 
     const sessionExists = patient.visits && patient.visits.some(v => 
       v.id !== editingVisitId && Number(v.session_no) === Number(visitForm.session_no)
@@ -134,10 +128,12 @@ export default function PatientProfile({ currentRole }) {
     }
 
     try {
-      await api.updateVisit(editingVisitId, {
+      const payload = {
         patient: patient.id,
-        ...visitForm
-      });
+        ...visitForm,
+        treatment_given: visitForm.treatment_given || "General Treatment Session"
+      };
+      await api.updateVisit(editingVisitId, payload);
       setEditingVisitId(null);
       loadPatientData();
     } catch (err) {

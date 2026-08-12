@@ -14,7 +14,7 @@ class Appointment(models.Model):
     appointment_date = models.DateField(default=timezone.now)
     appointment_time = models.TimeField(default="10:00")
     
-    department = models.CharField(max_length=100) # Skin & Laser, Hair Treatment, etc.
+    department = models.CharField(max_length=100, blank=True, default='Skin & Laser') # Skin & Laser, Hair Treatment, etc.
     subcategory = models.CharField(max_length=100, blank=True, null=True) # e.g. Laser Hair Reduction
     
     notes = models.TextField(blank=True, null=True)
