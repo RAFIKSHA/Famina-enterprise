@@ -58,10 +58,25 @@ class Patient(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.patient_id:
-            # Auto generate unique patient ID: FEM-YYYY-XXXX
             year = timezone.now().year
-            count = Patient.objects.filter(registration_date__year=year).count() + 1
-            self.patient_id = f"FEM-{year}-{count:04d}"
+            prefix = f"FEM-{year}-"
+            existing_ids = Patient.objects.filter(patient_id__startswith=prefix).values_list('patient_id', flat=True)
+            max_num = 0
+            for pid in existing_ids:
+                try:
+                    parts = pid.split('-')
+                    if len(parts) >= 3 and parts[-1].isdigit():
+                        num = int(parts[-1])
+                        if num > max_num:
+                            max_num = num
+                except (ValueError, IndexError):
+                    pass
+            next_num = max_num + 1
+            candidate_id = f"{prefix}{next_num:04d}"
+            while Patient.objects.filter(patient_id=candidate_id).exists():
+                next_num += 1
+                candidate_id = f"{prefix}{next_num:04d}"
+            self.patient_id = candidate_id
         super().save(*args, **kwargs)
 
     def __str__(self):

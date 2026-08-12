@@ -28,8 +28,24 @@ class Payment(models.Model):
     def save(self, *args, **kwargs):
         if not self.receipt_no:
             year = timezone.now().year
-            count = Payment.objects.filter(payment_date__year=year).count() + 1
-            self.receipt_no = f"REC-{year}-{count:05d}"
+            prefix = f"REC-{year}-"
+            existing_recs = Payment.objects.filter(receipt_no__startswith=prefix).values_list('receipt_no', flat=True)
+            max_num = 0
+            for r in existing_recs:
+                try:
+                    parts = r.split('-')
+                    if len(parts) >= 3 and parts[-1].isdigit():
+                        num = int(parts[-1])
+                        if num > max_num:
+                            max_num = num
+                except (ValueError, IndexError):
+                    pass
+            next_num = max_num + 1
+            candidate_rec = f"{prefix}{next_num:05d}"
+            while Payment.objects.filter(receipt_no=candidate_rec).exists():
+                next_num += 1
+                candidate_rec = f"{prefix}{next_num:05d}"
+            self.receipt_no = candidate_rec
         super().save(*args, **kwargs)
 
     @property
