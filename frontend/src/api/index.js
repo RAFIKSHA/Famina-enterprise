@@ -114,16 +114,34 @@ export const api = {
 
   createPatient: async (patientData) => {
     try {
+      const sanitized = { ...patientData };
+      if (sanitized.age === "" || sanitized.age === undefined || sanitized.age === null) {
+        sanitized.age = 0;
+      } else if (!isNaN(sanitized.age)) {
+        sanitized.age = Number(sanitized.age);
+      }
+      if (!sanitized.name) sanitized.name = "Patient Record";
+      if (!sanitized.category) sanitized.category = "Skin & Laser";
+
+      delete sanitized.id;
+      delete sanitized.amount_charged;
+      delete sanitized.amount_paid;
+      delete sanitized.payment_mode;
+      delete sanitized.next_appointment_date;
+      delete sanitized.visits;
+      delete sanitized.total_paid;
+      delete sanitized.balance_due;
+
       const res = await fetch(`${BASE_URL}/api/patients/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaders()
         },
-        body: JSON.stringify(patientData)
+        body: JSON.stringify(sanitized)
       });
       if (res.ok) return await res.json();
-      const err = await res.json();
+      const err = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(JSON.stringify(err));
     } catch (err) {
       console.error("Create patient failed:", err);
@@ -133,19 +151,36 @@ export const api = {
 
   updatePatient: async (id, patientData) => {
     try {
+      const sanitized = { ...patientData };
+      if (sanitized.age === "" || sanitized.age === undefined || sanitized.age === null) {
+        sanitized.age = 0;
+      } else if (!isNaN(sanitized.age)) {
+        sanitized.age = Number(sanitized.age);
+      }
+
+      delete sanitized.id;
+      delete sanitized.amount_charged;
+      delete sanitized.amount_paid;
+      delete sanitized.payment_mode;
+      delete sanitized.next_appointment_date;
+      delete sanitized.visits;
+      delete sanitized.total_paid;
+      delete sanitized.balance_due;
+
       const res = await fetch(`${BASE_URL}/api/patients/${id}/`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaders()
         },
-        body: JSON.stringify(patientData)
+        body: JSON.stringify(sanitized)
       });
       if (res.ok) return await res.json();
-      return null;
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(JSON.stringify(err));
     } catch (err) {
       console.error("Update patient failed:", err);
-      return null;
+      throw err;
     }
   },
 
@@ -294,37 +329,49 @@ export const api = {
 
   createAdmission: async (admissionData) => {
     try {
+      const sanitized = { ...admissionData };
+      sanitized.total_fees = Number(sanitized.total_fees) || 0;
+      sanitized.amount_paid = Number(sanitized.amount_paid) || 0;
+      if (!sanitized.student_name) sanitized.student_name = "Student Record";
+      if (!sanitized.contact) sanitized.contact = "N/A";
+
       const res = await fetch(`${BASE_URL}/api/academy/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaders()
         },
-        body: JSON.stringify(admissionData)
+        body: JSON.stringify(sanitized)
       });
       if (res.ok) return await res.json();
-      return null;
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(JSON.stringify(err));
     } catch (err) {
       console.error("Create admission failed:", err);
-      return null;
+      throw err;
     }
   },
 
   updateAdmission: async (id, admissionData) => {
     try {
+      const sanitized = { ...admissionData };
+      if (sanitized.total_fees !== undefined) sanitized.total_fees = Number(sanitized.total_fees) || 0;
+      if (sanitized.amount_paid !== undefined) sanitized.amount_paid = Number(sanitized.amount_paid) || 0;
+
       const res = await fetch(`${BASE_URL}/api/academy/${id}/`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaders()
         },
-        body: JSON.stringify(admissionData)
+        body: JSON.stringify(sanitized)
       });
       if (res.ok) return await res.json();
-      return null;
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(JSON.stringify(err));
     } catch (err) {
       console.error("Update admission failed:", err);
-      return null;
+      throw err;
     }
   },
 
@@ -344,19 +391,26 @@ export const api = {
 
   createSalonBooking: async (bookingData) => {
     try {
+      const sanitized = { ...bookingData };
+      sanitized.amount_charged = Number(sanitized.amount_charged) || 0;
+      sanitized.amount_paid = Number(sanitized.amount_paid) || 0;
+      if (!sanitized.customer_name) sanitized.customer_name = "Walk-in Customer";
+      if (!sanitized.service_name) sanitized.service_name = "Salon Service";
+
       const res = await fetch(`${BASE_URL}/api/salon/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaders()
         },
-        body: JSON.stringify(bookingData)
+        body: JSON.stringify(sanitized)
       });
       if (res.ok) return await res.json();
-      return null;
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(JSON.stringify(err));
     } catch (err) {
       console.error("Create salon booking failed:", err);
-      return null;
+      throw err;
     }
   },
 

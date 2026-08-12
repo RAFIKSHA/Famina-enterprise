@@ -130,14 +130,10 @@ export default function PatientForm({ currentRole }) {
         navigate(`/patient/${id}`);
       } else {
         // Create patient
-        const payload = {
-          ...formData,
-          name: formData.name || "Patient Record"
-        };
-        const patient = await api.createPatient(payload);
+        const patient = await api.createPatient(formData);
         
         // If fee is charged or paid, log the first visit session
-        if (formData.amount_charged > 0 || formData.amount_paid > 0) {
+        if (Number(formData.amount_charged) > 0 || Number(formData.amount_paid) > 0) {
           const user = api.getCurrentUser();
           await api.createVisit({
             patient: patient.id,
@@ -145,10 +141,10 @@ export default function PatientForm({ currentRole }) {
             total_sessions_in_package: 6, // default
             treatment_given: `Initial Setup - ${formData.subcategory || "Consultation"}`,
             notes: "First diagnostic and assessment session. Treatment plan initialized.",
-            amount_charged: formData.amount_charged,
-            amount_paid: formData.amount_paid,
-            payment_mode: formData.payment_mode,
-            next_appointment_date: formData.next_appointment_date,
+            amount_charged: Number(formData.amount_charged) || 0,
+            amount_paid: Number(formData.amount_paid) || 0,
+            payment_mode: formData.payment_mode || "Cash",
+            next_appointment_date: formData.next_appointment_date || null,
             staff_attended: user ? user.username : "receptionist"
           });
         }
@@ -156,7 +152,15 @@ export default function PatientForm({ currentRole }) {
       }
     } catch (err) {
       console.error("Error saving patient form", err);
-      alert("Error saving record. Please review fields.");
+      let errMsg = "Error saving record.";
+      try {
+        const parsed = JSON.parse(err.message);
+        const details = Object.entries(parsed).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`).join("\n");
+        if (details) errMsg += `\n${details}`;
+      } catch (e) {
+        if (err.message) errMsg += `\n${err.message}`;
+      }
+      alert(errMsg);
     }
   };
 
