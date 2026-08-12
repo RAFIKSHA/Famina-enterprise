@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { 
   Search, Grid, List, ChevronLeft, Plus, ArrowUpDown, 
-  Filter, Calendar, UserCheck, AlertCircle, Phone, Clock
+  Filter, Calendar, UserCheck, AlertCircle, Phone, Clock,
+  Users, Sparkles, XCircle, RotateCcw
 } from "lucide-react";
 import api from "../api";
 
@@ -16,9 +17,13 @@ export default function PatientList({ currentRole }) {
   // Filters & Sorting state
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [genderFilter, setGenderFilter] = useState("All"); // 'All', 'Female', 'Male', 'Other'
+  const [datePreset, setDatePreset] = useState("all"); // 'all', 'today', 'this_month', 'last_month', 'custom'
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [followupFilter, setFollowupFilter] = useState("All"); // 'All', 'Pending', 'Upcoming'
-  const [sortField, setSortField] = useState("name");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortField, setSortField] = useState("registration_date");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   useEffect(() => {
     async function loadPatients() {
@@ -45,6 +50,31 @@ export default function PatientList({ currentRole }) {
     }
   };
 
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("All");
+    setGenderFilter("All");
+    setDatePreset("all");
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setFollowupFilter("All");
+    setSortField("registration_date");
+    setSortOrder("desc");
+  };
+
+  // Date calculation helpers
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed
+  
+  const startOfThisMonth = new Date(currentYear, currentMonth, 1).toISOString().split("T")[0];
+  const endOfThisMonth = new Date(currentYear, currentMonth + 1, 0).toISOString().split("T")[0];
+  
+  const startOfLastMonth = new Date(currentYear, currentMonth - 1, 1).toISOString().split("T")[0];
+  const endOfLastMonth = new Date(currentYear, currentMonth, 0).toISOString().split("T")[0];
+
   // Filter patients
   const filteredPatients = patients.filter(p => {
     // Search filter
@@ -55,20 +85,41 @@ export default function PatientList({ currentRole }) {
     // Status filter
     const matchesStatus = statusFilter === "All" || p.status === statusFilter;
 
+    // Gender filter
+    const matchesGender = genderFilter === "All" || (p.gender && p.gender.toLowerCase() === genderFilter.toLowerCase());
+
+    // Date Filter
+    let matchesDate = true;
+    const regDate = p.registration_date;
+    if (datePreset === "today") {
+      matchesDate = regDate === todayStr;
+    } else if (datePreset === "this_month") {
+      matchesDate = regDate >= startOfThisMonth && regDate <= endOfThisMonth;
+    } else if (datePreset === "last_month") {
+      matchesDate = regDate >= startOfLastMonth && regDate <= endOfLastMonth;
+    } else if (datePreset === "custom") {
+      if (customStartDate && customEndDate) {
+        matchesDate = regDate >= customStartDate && regDate <= customEndDate;
+      } else if (customStartDate) {
+        matchesDate = regDate >= customStartDate;
+      } else if (customEndDate) {
+        matchesDate = regDate <= customEndDate;
+      }
+    }
+
     // Follow-up status filter
     let matchesFollowup = true;
-    const today = new Date().toISOString().split("T")[0];
     const nextAppt = p.visits && p.visits[0]?.next_appointment_date;
     
     if (followupFilter === "Pending") {
       // Overdue appointments (scheduled in past but not completed/updated)
-      matchesFollowup = nextAppt && nextAppt < today && p.status === "Active";
+      matchesFollowup = nextAppt && nextAppt < todayStr && p.status === "Active";
     } else if (followupFilter === "Upcoming") {
       // Future appointments
-      matchesFollowup = nextAppt && nextAppt >= today;
+      matchesFollowup = nextAppt && nextAppt >= todayStr;
     }
 
-    return matchesSearch && matchesStatus && matchesFollowup;
+    return matchesSearch && matchesStatus && matchesGender && matchesDate && matchesFollowup;
   });
 
   // Sort patients
@@ -93,6 +144,11 @@ export default function PatientList({ currentRole }) {
     }
   });
 
+  // Recent patients (top 4 latest added)
+  const recentPatients = [...patients].sort((a, b) => (b.id || 0) - (a.id || 0)).slice(0, 4);
+
+  const isFiltered = searchTerm !== "" || statusFilter !== "All" || genderFilter !== "All" || datePreset !== "all" || followupFilter !== "All" || customStartDate !== "" || customEndDate !== "";
+
   return (
     <div className="space-y-6">
       {/* Navigation Breadcrumbs */}
@@ -100,30 +156,38 @@ export default function PatientList({ currentRole }) {
         <div className="text-xs text-charcoal-light flex items-center gap-2 font-medium">
           <Link to="/dashboard" className="hover:text-rose-gold transition-colors">Dashboard</Link>
           <span>/</span>
-          <Link to={`/category/${encodeURIComponent(category)}`} className="hover:text-rose-gold transition-colors">
-            {category}
-          </Link>
-          <span>/</span>
-          <span className="text-teal-accent font-semibold">{subcategory || "Patients"}</span>
+          {category ? (
+            <>
+              <Link to={`/category/${encodeURIComponent(category)}`} className="hover:text-rose-gold transition-colors">
+                {category}
+              </Link>
+              <span>/</span>
+              <span className="text-teal-accent font-semibold">{subcategory || "Patients"}</span>
+            </>
+          ) : (
+            <span className="text-teal-accent font-semibold">All Patients Directory</span>
+          )}
         </div>
         
         <button 
           onClick={() => navigate(-1)} 
-          className="flex items-center gap-1.5 text-xs font-semibold text-rose-gold hover:text-rose-gold-dark"
+          className="flex items-center gap-1.5 text-xs font-semibold text-rose-gold hover:text-rose-gold-dark cursor-pointer"
         >
-          <ChevronLeft className="h-4 w-4" /> Back to Folders
+          <ChevronLeft className="h-4 w-4" /> Back
         </button>
       </div>
 
       {/* Header Info */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="text-[10px] font-bold tracking-widest text-rose-gold uppercase bg-rose-50 px-2 py-0.5 rounded">
-            {category}
-          </span>
-          <h2 className="text-2xl font-bold font-heading text-teal-accent mt-1">{subcategory || "Patient Index"}</h2>
+          {category && (
+            <span className="text-[10px] font-bold tracking-widest text-rose-gold uppercase bg-rose-50 px-2 py-0.5 rounded">
+              {category}
+            </span>
+          )}
+          <h2 className="text-2xl font-bold font-heading text-teal-accent mt-1">{subcategory || (category ? `${category} Patients` : "Patient Records Vault")}</h2>
           <p className="text-xs text-charcoal-light mt-0.5">
-            Showing {sortedPatients.length} patient file cards in this department.
+            Showing {sortedPatients.length} of {patients.length} total patient files.
           </p>
         </div>
 
@@ -147,27 +211,140 @@ export default function PatientList({ currentRole }) {
           </div>
 
           <Link
-            to={`/new-patient?category=${encodeURIComponent(category)}&subcategory=${encodeURIComponent(subcategory || "")}`}
+            to={`/new-patient?category=${encodeURIComponent(category || "Skin & Laser")}&subcategory=${encodeURIComponent(subcategory || "")}`}
             className="flex items-center gap-2 bg-teal-accent hover:bg-teal-dark text-white font-medium py-2.5 px-5 rounded-xl shadow-xs transition-transform hover:scale-[1.02]"
           >
-            <Plus className="h-4 w-4" /> Add Patient File
+            <Plus className="h-4 w-4" /> Register Patient File
           </Link>
         </div>
       </div>
 
-      {/* Filters Control Panel */}
+      {/* Recent Patients Highlight Strip */}
+      {recentPatients.length > 0 && !isFiltered && (
+        <div className="bg-cream-card rounded-2xl p-4 border border-rose-gold-light/15 shadow-xs space-y-3 no-print">
+          <div className="flex items-center justify-between border-b border-rose-gold-light/10 pb-2">
+            <h3 className="text-xs font-bold text-teal-accent flex items-center gap-1.5 uppercase tracking-wider">
+              <Sparkles className="h-3.5 w-3.5 text-rose-gold" /> Recently Registered Patients
+            </h3>
+            <span className="text-[10px] text-charcoal-light font-medium">Latest Entries</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {recentPatients.map(p => (
+              <div 
+                key={p.id}
+                onClick={() => navigate(`/patient/${p.id}`)}
+                className="bg-white hover:bg-rose-50/30 border border-rose-gold-light/20 p-3 rounded-xl cursor-pointer transition-all hover:scale-[1.02] shadow-xs flex items-center justify-between"
+              >
+                <div className="space-y-0.5">
+                  <span className="text-[9px] font-bold bg-cream-bg text-rose-gold px-1.5 py-0.5 rounded">
+                    {p.patient_id}
+                  </span>
+                  <h4 className="font-bold text-teal-accent text-xs truncate max-w-[140px]">{p.name}</h4>
+                  <p className="text-[10px] text-charcoal-light">{p.gender} • {p.age ? `${p.age} yrs` : "Age N/A"}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] text-charcoal-light font-semibold block">{p.registration_date}</span>
+                  <span className="text-[10px] font-bold text-rose-gold">View →</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Filters Control Panel */}
       <div className="bg-cream-card rounded-2xl p-4 border border-rose-gold-light/10 shadow-xs space-y-4 no-print">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        
+        {/* Quick Date Presets Strip */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rose-gold-light/10 pb-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-teal-accent flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5 text-rose-gold" /> Date Range:
+            </span>
+            {[
+              { id: "all", label: "All Time" },
+              { id: "today", label: "Today" },
+              { id: "this_month", label: "This Month" },
+              { id: "last_month", label: "Last Month" },
+              { id: "custom", label: "Custom Range" }
+            ].map(preset => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setDatePreset(preset.id)}
+                className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all cursor-pointer ${
+                  datePreset === preset.id
+                    ? "bg-rose-gold text-white shadow-xs"
+                    : "bg-cream-bg text-charcoal hover:bg-cream-dark border border-rose-gold-light/20"
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {isFiltered && (
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-semibold cursor-pointer"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Reset Filters
+            </button>
+          )}
+        </div>
+
+        {/* Custom Date Pickers (Shown only when 'Custom Range' is selected) */}
+        {datePreset === "custom" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-white rounded-xl border border-rose-gold-light/20 animate-fadeIn">
+            <div>
+              <label className="block text-[11px] font-semibold text-charcoal-light mb-1">From Date:</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full bg-cream-bg border border-rose-gold-light/25 rounded-xl p-2 text-xs font-semibold text-teal-accent focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-charcoal-light mb-1">To Date:</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full bg-cream-bg border border-rose-gold-light/25 rounded-xl p-2 text-xs font-semibold text-teal-accent focus:outline-none"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Main Filter Dropdowns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Local Search input */}
-          <div className="relative">
+          <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-3 h-4 w-4 text-rose-gold-dark" />
             <input
               type="text"
               placeholder="Search by name, ID or mobile..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-cream-bg text-sm border border-rose-gold-light/20 focus:border-rose-gold rounded-xl py-2 pl-9 pr-4 focus:outline-none"
+              className="w-full bg-cream-bg text-xs border border-rose-gold-light/20 focus:border-rose-gold rounded-xl py-2.5 pl-9 pr-4 focus:outline-none font-medium"
             />
+          </div>
+
+          {/* Gender filter dropdown */}
+          <div className="flex items-center gap-2 border border-rose-gold-light/20 rounded-xl px-3 py-2 bg-cream-bg">
+            <Users className="h-4 w-4 text-rose-gold" />
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value)}
+              className="bg-transparent text-xs w-full focus:outline-none text-charcoal font-semibold"
+            >
+              <option value="All">All Genders</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
 
           {/* Status filter dropdown */}
@@ -176,25 +353,11 @@ export default function PatientList({ currentRole }) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-transparent text-sm w-full focus:outline-none text-charcoal font-medium"
+              className="bg-transparent text-xs w-full focus:outline-none text-charcoal font-semibold"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active Packages</option>
               <option value="Completed">Completed Packages</option>
-            </select>
-          </div>
-
-          {/* Followup schedule filters */}
-          <div className="flex items-center gap-2 border border-rose-gold-light/20 rounded-xl px-3 py-2 bg-cream-bg">
-            <Clock className="h-4 w-4 text-rose-gold" />
-            <select
-              value={followupFilter}
-              onChange={(e) => setFollowupFilter(e.target.value)}
-              className="bg-transparent text-sm w-full focus:outline-none text-charcoal font-medium"
-            >
-              <option value="All">All Follow-ups</option>
-              <option value="Pending">⚠️ Pending/Overdue Follow-ups</option>
-              <option value="Upcoming">📅 Upcoming Appointments</option>
             </select>
           </div>
 
@@ -204,12 +367,12 @@ export default function PatientList({ currentRole }) {
             <select
               value={sortField}
               onChange={(e) => handleSort(e.target.value)}
-              className="bg-transparent text-sm w-full focus:outline-none text-charcoal font-medium"
+              className="bg-transparent text-xs w-full focus:outline-none text-charcoal font-semibold"
             >
-              <option value="name">Sort by Name</option>
-              <option value="registration_date">Sort by Reg. Date</option>
-              <option value="last_visit">Sort by Last Session</option>
-              <option value="next_appointment">Sort by Next Visit</option>
+              <option value="registration_date">Sort: Newest First</option>
+              <option value="name">Sort: Name (A-Z)</option>
+              <option value="last_visit">Sort: Last Session</option>
+              <option value="next_appointment">Sort: Next Visit</option>
             </select>
           </div>
         </div>

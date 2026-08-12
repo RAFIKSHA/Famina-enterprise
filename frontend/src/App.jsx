@@ -76,6 +76,7 @@ export default function App() {
                 <Routes>
                   {/* Dashboard Explorer paths */}
                   <Route path="/dashboard" element={<Dashboard currentRole={role} globalSearch={globalSearch} />} />
+                  <Route path="/patients" element={<PatientList currentRole={role} />} />
                   <Route path="/category/:category" element={<Dashboard currentRole={role} globalSearch={globalSearch} />} />
                   <Route path="/category/:category/:subcategory" element={<PatientList currentRole={role} />} />
                   

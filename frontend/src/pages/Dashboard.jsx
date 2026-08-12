@@ -372,6 +372,51 @@ export default function Dashboard({ currentRole, globalSearch }) {
           </div>
         </div>
       )}
+
+      {/* Recently Added Patients Table Widget */}
+      {patients.length > 0 && (
+        <div className="bg-cream-card rounded-3xl p-6 border border-rose-gold-light/10 shadow-xs space-y-4">
+          <div className="flex justify-between items-center border-b border-rose-gold-light/10 pb-3">
+            <div>
+              <h3 className="font-heading font-bold text-lg text-teal-accent flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-rose-gold" /> Recently Added Patients
+              </h3>
+              <p className="text-xs text-charcoal-light">Real-time patient files registered in the clinic system</p>
+            </div>
+            <Link to="/patients" className="text-xs font-bold text-rose-gold hover:underline">
+              Browse All ({patients.length}) →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...patients].sort((a, b) => (b.id || 0) - (a.id || 0)).slice(0, 6).map(p => (
+              <div
+                key={p.id}
+                onClick={() => navigate(`/patient/${p.id}`)}
+                className="bg-white hover:bg-rose-50/30 border border-rose-gold-light/20 p-4 rounded-2xl cursor-pointer transition-all hover:scale-[1.01] shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-bold bg-cream-bg text-rose-gold px-2 py-0.5 rounded uppercase">
+                      {p.patient_id}
+                    </span>
+                    <span className="text-[10px] text-charcoal-light font-semibold">
+                      {p.registration_date}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-teal-accent text-sm truncate">{p.name}</h4>
+                  <p className="text-xs text-charcoal-light mt-0.5">{p.gender} • {p.age ? `${p.age} yrs` : "Age N/A"}</p>
+                  <p className="text-[11px] text-rose-gold font-medium mt-1 truncate">{p.category} {p.subcategory && `• ${p.subcategory}`}</p>
+                </div>
+                <div className="mt-3 pt-2.5 border-t border-rose-gold-light/10 flex justify-between items-center text-xs font-semibold text-rose-gold">
+                  <span>Balance: ₹{p.balance_due || 0}</span>
+                  <span>Open File →</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ export default function Layout({ children, currentRole, onChangeRole, globalSear
 
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: Sparkles, roles: ["admin", "doctor", "receptionist"] },
+    { name: "Patients Directory", path: "/patients", icon: User, roles: ["admin", "doctor", "receptionist"] },
     { name: "Analytics Dashboard", path: "/analytics", icon: Landmark, roles: ["admin"] },
     { name: "Appointments & Calendar", path: "/appointments", icon: Calendar, roles: ["admin", "receptionist"] },
     { name: "Academy Admissions", path: "/academy", icon: BookOpen, roles: ["admin", "receptionist"] },
